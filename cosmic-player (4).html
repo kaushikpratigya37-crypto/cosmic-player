@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA — Cosmic Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --neon-cyan: #00f5ff;
+    --neon-pink: #ff006e;
+    --neon-gold: #ffd60a;
+    --neon-purple: #bf5fff;
+    --deep-space: #03001e;
+    --glow-cyan: 0 0 20px #00f5ff88, 0 0 60px #00f5ff33;
+    --glow-pink: 0 0 20px #ff006e88, 0 0 60px #ff006e33;
+  }
+  body {
+    min-height: 100vh;
+    background: var(--deep-space);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    overflow: hidden; cursor: none;
+  }
+  #cursor { position:fixed; width:12px; height:12px; border-radius:50%; background:var(--neon-cyan); box-shadow:var(--glow-cyan); pointer-events:none; z-index:9999; mix-blend-mode:screen; }
+  #cursor-ring { position:fixed; width:32px; height:32px; border-radius:50%; border:1px solid var(--neon-cyan); pointer-events:none; z-index:9998; opacity:0.5; }
+  .stars { position:fixed; inset:0; background: radial-gradient(1px 1px at 10% 15%,#fff8 0%,transparent 100%), radial-gradient(1px 1px at 25% 40%,#fff6 0%,transparent 100%), radial-gradient(1px 1px at 60% 10%,#fff9 0%,transparent 100%), radial-gradient(1px 1px at 80% 55%,#fff5 0%,transparent 100%), radial-gradient(1px 1px at 45% 80%,#fff7 0%,transparent 100%), radial-gradient(2px 2px at 90% 25%,#fff4 0%,transparent 100%), radial-gradient(1px 1px at 35% 65%,#fff6 0%,transparent 100%); animation:twinkle 6s ease-in-out infinite alternate; pointer-events:none; }
+  @keyframes twinkle { 0%{opacity:0.6} 100%{opacity:1} }
+  .nebula { position:fixed; inset:0; background: radial-gradient(ellipse 600px 400px at 20% 50%,#0d004422 0%,transparent 70%), radial-gradient(ellipse 400px 600px at 80% 30%,#00004488 0%,transparent 70%); pointer-events:none; animation:nebula-drift 20s ease-in-out infinite alternate; }
+  @keyframes nebula-drift { 0%{transform:scale(1)} 100%{transform:scale(1.05)} }
+  .scanlines { position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); pointer-events:none; z-index:5; }
+
+  .player {
+    position:relative; width:430px;
+    background:linear-gradient(135deg,#0a0a2e 0%,#03001e 100%);
+    border:1px solid #00f5ff22; border-radius:24px;
+    padding:26px 34px 28px;
+    box-shadow:0 0 80px #00f5ff11,0 0 160px #ff006e08,inset 0 1px 0 #00f5ff22;
+    z-index:10; max-height:98vh; overflow-y:auto; scrollbar-width:none;
+  }
+  .player::-webkit-scrollbar { display:none; }
+  .player::before,.player::after { content:''; position:absolute; width:20px; height:20px; border-color:var(--neon-cyan); border-style:solid; opacity:0.6; }
+  .player::before { top:12px; left:12px; border-width:2px 0 0 2px; }
+  .player::after  { bottom:12px; right:12px; border-width:0 2px 2px 0; }
+
+  /* YouTube hidden player */
+  #yt-player { position:absolute; width:1px; height:1px; top:-9999px; left:-9999px; }
+
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .logo { font-family:'Orbitron',monospace; font-weight:900; font-size:22px; color:var(--neon-cyan); text-shadow:var(--glow-cyan); letter-spacing:6px; }
+  .status-dot { width:8px; height:8px; border-radius:50%; background:var(--neon-cyan); box-shadow:var(--glow-cyan); animation:pulse-dot 2s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.6);opacity:0.5} }
+
+  .category-tabs { display:flex; gap:8px; margin-bottom:16px; }
+  .cat-btn { flex:1; padding:7px 4px; background:transparent; border:1px solid #ffffff15; border-radius:10px; color:#ffffff44; font-family:'Orbitron',monospace; font-size:8px; letter-spacing:1px; cursor:pointer; transition:all 0.25s; }
+  .cat-btn:hover { border-color:#00f5ff44; color:#00f5ff99; }
+  .cat-btn.active-bollywood { border-color:var(--neon-pink); color:var(--neon-pink); background:#ff006e0d; box-shadow:0 0 15px #ff006e22; }
+  .cat-btn.active-retro { border-color:var(--neon-gold); color:var(--neon-gold); background:#ffd60a0d; box-shadow:0 0 15px #ffd60a22; }
+  .cat-btn.active-all { border-color:var(--neon-cyan); color:var(--neon-cyan); background:#00f5ff0d; box-shadow:0 0 15px #00f5ff22; }
+
+  .orbital-wrap { position:relative; width:190px; height:190px; margin:0 auto 18px; }
+  .orbit-ring { position:absolute; border-radius:50%; border:1px solid; top:50%; left:50%; transform:translate(-50%,-50%); }
+  .ring1 { width:150px; height:150px; border-color:#00f5ff18; animation:spin 8s linear infinite; }
+  .ring2 { width:178px; height:178px; border-color:#ff006e12; animation:spin 14s linear infinite reverse; }
+  .ring3 { width:206px; height:206px; border-color:#ffd60a0a; animation:spin 20s linear infinite; }
+  @keyframes spin { to{transform:translate(-50%,-50%) rotate(360deg)} }
+  .orbit-dot { position:absolute; border-radius:50%; top:50%; left:50%; }
+  .dot-cyan { width:6px; height:6px; background:var(--neon-cyan); box-shadow:var(--glow-cyan); margin:-3px; animation:orbit-cyan 8s linear infinite; }
+  .dot-pink { width:5px; height:5px; background:var(--neon-pink); box-shadow:var(--glow-pink); margin:-2.5px; animation:orbit-pink 14s linear infinite reverse; }
+  @keyframes orbit-cyan { from{transform:rotate(0deg) translateX(74px) rotate(0deg)} to{transform:rotate(360deg) translateX(74px) rotate(-360deg)} }
+  @keyframes orbit-pink { from{transform:rotate(0deg) translateX(88px) rotate(0deg)} to{transform:rotate(360deg) translateX(88px) rotate(-360deg)} }
+
+  #art-canvas { position:absolute; width:110px; height:110px; border-radius:50%; top:50%; left:50%; transform:translate(-50%,-50%); border:2px solid #00f5ff33; box-shadow:0 0 30px #00f5ff22; }
+
+  .track-info { text-align:center; margin-bottom:10px; }
+  .track-name { font-family:'Orbitron',monospace; font-size:12px; font-weight:700; color:#fff; letter-spacing:1px; margin-bottom:4px; overflow:hidden; white-space:nowrap; }
+  .track-name span { display:inline-block; animation:marquee 14s linear infinite; }
+  @keyframes marquee { 0%{transform:translateX(60%)} 100%{transform:translateX(-100%)} }
+  .track-artist { font-size:10px; color:var(--neon-cyan); letter-spacing:2px; opacity:0.7; text-transform:uppercase; }
+  .track-year { font-size:9px; color:#ffffff33; letter-spacing:1px; margin-top:3px; }
+
+  .now-status { text-align:center; font-size:9px; letter-spacing:2px; margin-bottom:10px; height:14px; }
+  .s-playing { color:var(--neon-cyan); animation:blink 1.5s ease-in-out infinite; }
+  .s-paused  { color:#ffffff33; }
+  .s-loading { color:var(--neon-gold); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .waveform { display:flex; align-items:center; justify-content:center; gap:3px; height:30px; margin-bottom:14px; }
+  .bar { width:3px; border-radius:2px; background:var(--neon-cyan); opacity:0.7; animation:wave 1.2s ease-in-out infinite alternate; }
+  .bar:nth-child(even) { background:var(--neon-pink); animation-duration:0.9s; }
+  .bar.paused { animation-play-state:paused !important; height:4px !important; }
+  @keyframes wave { from{height:4px} to{height:24px} }
+  .bar:nth-child(1){animation-delay:.00s}.bar:nth-child(2){animation-delay:.08s}.bar:nth-child(3){animation-delay:.16s}
+  .bar:nth-child(4){animation-delay:.24s}.bar:nth-child(5){animation-delay:.32s}.bar:nth-child(6){animation-delay:.40s}
+  .bar:nth-child(7){animation-delay:.48s}.bar:nth-child(8){animation-delay:.56s}.bar:nth-child(9){animation-delay:.64s}
+  .bar:nth-child(10){animation-delay:.72s}.bar:nth-child(11){animation-delay:.80s}.bar:nth-child(12){animation-delay:.88s}
+  .bar:nth-child(13){animation-delay:.96s}.bar:nth-child(14){animation-delay:1.04s}.bar:nth-child(15){animation-delay:1.12s}
+  .bar:nth-child(16){animation-delay:1.20s}.bar:nth-child(17){animation-delay:1.28s}.bar:nth-child(18){animation-delay:.04s}
+  .bar:nth-child(19){animation-delay:.12s}.bar:nth-child(20){animation-delay:.20s}
+
+  .progress-wrap { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .time { font-size:10px; color:#ffffff55; min-width:32px; }
+  .time.right { text-align:right; }
+  .progress-bar { flex:1; height:3px; background:#ffffff11; border-radius:3px; cursor:pointer; position:relative; }
+  .progress-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink)); border-radius:3px; box-shadow:0 0 10px var(--neon-cyan); position:relative; }
+  .progress-fill::after { content:''; position:absolute; right:-4px; top:-4px; width:11px; height:11px; border-radius:50%; background:#fff; box-shadow:var(--glow-cyan); }
+
+  .controls { display:flex; align-items:center; justify-content:center; gap:18px; margin-bottom:20px; }
+  .ctrl-btn { background:none; border:none; cursor:pointer; color:#ffffff44; transition:color 0.2s,transform 0.15s; display:flex; align-items:center; }
+  .ctrl-btn:hover { color:var(--neon-cyan); transform:scale(1.15); }
+  .ctrl-btn.on-shuffle { color:var(--neon-gold) !important; }
+  .ctrl-btn.on-repeat  { color:var(--neon-purple) !important; }
+
+  .play-btn { width:56px; height:56px; border-radius:50%; background:transparent; border:1.5px solid var(--neon-cyan); box-shadow:var(--glow-cyan),inset 0 0 20px #00f5ff11; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--neon-cyan); transition:box-shadow 0.2s,transform 0.15s; position:relative; overflow:hidden; }
+  .play-btn::before { content:''; position:absolute; inset:-2px; border-radius:50%; background:conic-gradient(from 0deg,var(--neon-cyan) 0%,transparent 60%); animation:pspin 3s linear infinite; opacity:0.3; }
+  @keyframes pspin { to{transform:rotate(360deg)} }
+  .play-btn:hover { box-shadow:0 0 40px #00f5ffaa,0 0 80px #00f5ff44; transform:scale(1.05); }
+  .play-btn.pink { border-color:var(--neon-pink); box-shadow:var(--glow-pink); color:var(--neon-pink); }
+  .play-btn.pink::before { background:conic-gradient(from 0deg,var(--neon-pink) 0%,transparent 60%); }
+
+  .vol-row { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .vol-icon { color:#ffffff33; }
+  input[type=range] { -webkit-appearance:none; flex:1; height:3px; background:#ffffff11; border-radius:3px; outline:none; cursor:pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; border-radius:50%; background:var(--neon-cyan); box-shadow:var(--glow-cyan); cursor:pointer; }
+
+  .search-wrap { position:relative; margin-bottom:8px; }
+  .search-input { width:100%; background:#ffffff06; border:1px solid #ffffff11; border-radius:10px; padding:8px 12px 8px 32px; color:#ffffffcc; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; outline:none; transition:border-color 0.2s; }
+  .search-input:focus { border-color:#00f5ff33; }
+  .search-input::placeholder { color:#ffffff33; }
+  .search-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#ffffff33; pointer-events:none; }
+
+  .track-count { font-size:9px; color:#ffffff33; text-align:center; margin-bottom:6px; letter-spacing:2px; }
+
+  .tracklist { border-top:1px solid #ffffff08; padding-top:12px; display:flex; flex-direction:column; gap:5px; max-height:230px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#00f5ff22 transparent; }
+  .tracklist::-webkit-scrollbar { width:3px; }
+  .tracklist::-webkit-scrollbar-thumb { background:#00f5ff22; border-radius:3px; }
+
+  .track-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; transition:background 0.2s; border:1px solid transparent; }
+  .track-item:hover { background:#00f5ff08; border-color:#00f5ff15; }
+  .track-item.active { background:#00f5ff0d; border-color:#00f5ff25; }
+  .track-num { font-size:10px; color:#ffffff33; width:16px; text-align:center; font-family:'Orbitron',monospace; }
+  .track-item.active .track-num { color:var(--neon-cyan); }
+  .track-meta { flex:1; min-width:0; }
+  .t-name { font-size:11px; color:#ffffffcc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .track-item.active .t-name { color:var(--neon-cyan); }
+  .t-artist { font-size:9px; color:#ffffff44; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .t-dot { width:6px; height:6px; border-radius:50%; background:var(--neon-cyan); box-shadow:var(--glow-cyan); animation:pulse-dot 2s infinite; flex-shrink:0; }
+  .genre-pill { font-size:7px; padding:2px 5px; border-radius:20px; letter-spacing:1px; font-family:'Orbitron',monospace; flex-shrink:0; }
+  .pill-b { background:#ff006e22; color:var(--neon-pink); border:1px solid #ff006e33; }
+  .pill-r { background:#ffd60a22; color:var(--neon-gold); border:1px solid #ffd60a33; }
+
+  .yt-note { font-size:8px; color:#ffffff18; text-align:center; margin-top:14px; letter-spacing:1px; }
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<div class="stars"></div>
+<div class="nebula"></div>
+<div class="scanlines"></div>
+
+<!-- Hidden YouTube player -->
+<div id="yt-player" style="position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;"></div>
+
+<div class="player">
+  <div style="position:absolute;top:12px;right:12px;width:20px;height:20px;border-top:2px solid #00f5ff99;border-right:2px solid #00f5ff99;"></div>
+  <div style="position:absolute;bottom:12px;left:12px;width:20px;height:20px;border-bottom:2px solid #00f5ff99;border-left:2px solid #00f5ff99;"></div>
+
+  <div class="header">
+    <div class="logo">NOVA</div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:9px;color:#00f5ff88;letter-spacing:2px;">LIVE</span>
+      <div class="status-dot"></div>
+    </div>
+  </div>
+
+  <div class="category-tabs">
+    <button class="cat-btn active-all" onclick="filterCat('all')" id="tab-all">✦ ALL</button>
+    <button class="cat-btn" onclick="filterCat('bollywood')" id="tab-bollywood">🎬 BOLLYWOOD</button>
+    <button class="cat-btn" onclick="filterCat('retro')" id="tab-retro">🎷 90s RETRO</button>
+  </div>
+
+  <div class="orbital-wrap">
+    <div class="orbit-ring ring1"></div>
+    <div class="orbit-ring ring2"></div>
+    <div class="orbit-ring ring3"></div>
+    <div class="orbit-dot dot-cyan"></div>
+    <div class="orbit-dot dot-pink"></div>
+    <canvas id="art-canvas" width="110" height="110"></canvas>
+  </div>
+
+  <div class="track-info">
+    <div class="track-name"><span id="track-title">CLICK A SONG TO PLAY ♪</span></div>
+    <div class="track-artist" id="track-artist">NOVA PLAYER</div>
+    <div class="track-year" id="track-year">BOLLYWOOD & 90s RETRO</div>
+  </div>
+
+  <div class="now-status s-paused" id="now-status">▸ READY TO PLAY</div>
+
+  <div class="waveform" id="waveform"></div>
+
+  <div class="progress-wrap">
+    <span class="time" id="cur-time">0:00</span>
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <span class="time right" id="total-time">0:00</span>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="btn-shuffle" onclick="toggleShuffle()" title="Shuffle">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+    </button>
+    <button class="ctrl-btn" onclick="prevTrack()" title="Prev">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+    </button>
+    <button class="play-btn pink" id="play-btn" onclick="togglePlay()">
+      <svg id="play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="6 3 20 12 6 21 6 3"/>
+      </svg>
+    </button>
+    <button class="ctrl-btn" onclick="nextTrack()" title="Next">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+    </button>
+    <button class="ctrl-btn" id="btn-repeat" onclick="toggleRepeat()" title="Repeat">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+    </button>
+  </div>
+
+  <div class="vol-row">
+    <svg class="vol-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+    <input type="range" min="0" max="100" value="80" id="vol-slider" oninput="setVol(this.value)">
+    <svg class="vol-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00f5ff" stroke-width="1.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+  </div>
+
+  <div class="search-wrap">
+    <svg class="search-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" class="search-input" id="search-input" placeholder="SEARCH SONGS, ARTIST, MOVIE..." oninput="filterSearch(this.value)">
+  </div>
+  <div class="track-count" id="track-count">24 TRACKS</div>
+  <div class="tracklist" id="tracklist"></div>
+  <div class="yt-note">♪ Powered by YouTube — internet required</div>
+</div>
+
+<script>
+// Cursor
+const curEl=document.getElementById('cursor'),ringEl=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;curEl.style.left=(mx-6)+'px';curEl.style.top=(my-6)+'px';});
+(function ar(){rx+=(mx-rx-16)*.15;ry+=(my-ry-16)*.15;ringEl.style.left=rx+'px';ringEl.style.top=ry+'px';requestAnimationFrame(ar);})();
+
+// Waveform
+const wfEl=document.getElementById('waveform');
+for(let i=0;i<22;i++){const b=document.createElement('div');b.className='bar';b.style.animationDelay=(i*.06)+'s';b.style.height=(Math.random()*20+4)+'px';wfEl.appendChild(b);}
+
+// Canvas
+const canvas=document.getElementById('art-canvas'),ctx=canvas.getContext('2d');
+let ang=0,c1='#00f5ff',c2='#ff006e';
+function drawArt(){
+  ctx.clearRect(0,0,110,110);
+  const bg=ctx.createRadialGradient(55,55,4,55,55,55);
+  bg.addColorStop(0,'#0d0040');bg.addColorStop(1,'#03001e');
+  ctx.fillStyle=bg;ctx.beginPath();ctx.arc(55,55,55,0,Math.PI*2);ctx.fill();
+  for(let r=0;r<3;r++){
+    ctx.save();ctx.translate(55,55);ctx.rotate(ang*(r%2===0?1:-1)+r*1.2);
+    ctx.strokeStyle=[c1,c2,'#ffd60a'][r];ctx.globalAlpha=.35-r*.07;ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(0,0,22+r*8,9+r*4,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+  }
+  ctx.save();ctx.translate(55,55);ctx.rotate(ang*.5);
+  const sg=ctx.createRadialGradient(0,0,0,0,0,14);
+  sg.addColorStop(0,'#fff');sg.addColorStop(.3,c1+'cc');sg.addColorStop(1,'transparent');
+  ctx.fillStyle=sg;ctx.beginPath();
+  for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2,r2=i%2===0?14:6;i===0?ctx.moveTo(Math.cos(a)*r2,Math.sin(a)*r2):ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);}
+  ctx.closePath();ctx.fill();ctx.restore();
+  ang+=.012;requestAnimationFrame(drawArt);
+}
+drawArt();
+
+// Tracks
+const allTracks=[
+  {title:'TUJH MEIN RAB DIKHTA HAI',artist:'ROOP KUMAR RATHOD',movie:'RAB NE BANA DI JODI',year:'2008',genre:'bollywood',yt:'kzaAHmEjGjQ'},
+  {title:'CHAIYYA CHAIYYA',artist:'SUKHWINDER SINGH',movie:'DIL SE',year:'1998',genre:'bollywood',yt:'T1wEBuOfBdo'},
+  {title:'TERI MITTI',artist:'B PRAAK',movie:'KESARI',year:'2019',genre:'bollywood',yt:'MrDhFQBUBEY'},
+  {title:'AE DIL HAI MUSHKIL',artist:'ARIJIT SINGH',movie:'AE DIL HAI MUSHKIL',year:'2016',genre:'bollywood',yt:'6FURuLEDSKo'},
+  {title:'DIL CHAHTA HAI',artist:'SHANKAR MAHADEVAN',movie:'DIL CHAHTA HAI',year:'2001',genre:'bollywood',yt:'rZyBaDkMisM'},
+  {title:'KUCH KUCH HOTA HAI',artist:'KAVITA KRISHNAMURTHY',movie:'KUCH KUCH HOTA HAI',year:'1998',genre:'bollywood',yt:'S1GAZuJBxM4'},
+  {title:'LUKA CHUPPI',artist:'LATA MANGESHKAR',movie:'RANG DE BASANTI',year:'2006',genre:'bollywood',yt:'sPOVpGSbhI0'},
+  {title:'MAIN AGAR KAHOON',artist:'UDIT NARAYAN',movie:'OM SHANTI OM',year:'2007',genre:'bollywood',yt:'7SaFpFKVvfg'},
+  {title:'GALLIYAN',artist:'ANKIT TIWARI',movie:'EK VILLAIN',year:'2014',genre:'bollywood',yt:'zMq1mDiJcaQ'},
+  {title:'TERE BINA',artist:'REHMAN & CHINMAYI',movie:'GURU',year:'2007',genre:'bollywood',yt:'3qQqcuAx9Aw'},
+  {title:'KABHI KHUSHI KABHIE GHAM',artist:'ALKA YAGNIK',movie:'K3G',year:'2001',genre:'bollywood',yt:'nblSRHAKDOk'},
+  {title:'RAABTA',artist:'NIKHIL D\'SOUZA',movie:'AGENT SYED',year:'2012',genre:'bollywood',yt:'Idk2BTR5JXY'},
+  {title:'PEHLA NASHA',artist:'UDIT NARAYAN',movie:'JO JEETA WOHI SIKANDAR',year:'1992',genre:'retro',yt:'JGK_LKchj2g'},
+  {title:'JAADU TERI NAZAR',artist:'UDIT NARAYAN',movie:'DARR',year:'1993',genre:'retro',yt:'k9ZNZK3GOFQ'},
+  {title:'CHURA KE DIL MERA',artist:'KUMAR SANU',movie:'MAIN KHILADI TU ANARI',year:'1994',genre:'retro',yt:'MezMbaDRFog'},
+  {title:'TU CHEEZ BADI HAI MAST',artist:'KAVITA KRISHNAMURTHY',movie:'MOHRA',year:'1994',genre:'retro',yt:'w8gGLSH6MXs'},
+  {title:'BAHUT PYAAR KARTE HAIN',artist:'KUMAR SANU',movie:'SAAJAN',year:'1991',genre:'retro',yt:'ysYPvvGAGok'},
+  {title:'HUMKO HUMISE CHURA LO',artist:'LATA MANGESHKAR',movie:'MOHABBATEIN',year:'2000',genre:'retro',yt:'FBvbqQUl3Uc'},
+  {title:'EK DO TEEN',artist:'ASHA BHOSLE',movie:'TEZAAB',year:'1988',genre:'retro',yt:'hEYkJAU85-M'},
+  {title:'DIDI TERA DEVAR DEEWANA',artist:'LATA & S.P.B.',movie:'HUM AAPKE HAIN KOUN',year:'1994',genre:'retro',yt:'hAiT3kBNqcE'},
+  {title:'ROJA JAANEMAN',artist:'S.P. BALASUBRAHMANYAM',movie:'ROJA',year:'1992',genre:'retro',yt:'vCb9hCEaEnk'},
+  {title:'YAADON KI BAARAAT',artist:'KISHORE KUMAR',movie:'YAADON KI BAARAAT',year:'1973',genre:'retro',yt:'MgbFEJuTwRY'},
+  {title:'MERE KHWABON MEIN',artist:'KAVITA KRISHNAMURTHY',movie:'DDLJ',year:'1995',genre:'retro',yt:'f5s2VJYpBqw'},
+  {title:'TUM SE MILKE',artist:'KAVITA KRISHNAMURTHY',movie:'SHOLA AUR SHABNAM',year:'1992',genre:'retro',yt:'Yv7XhToRo_A'},
+];
+
+// State
+let curIdx=0,isPlaying=false,shuffleOn=false,repeatOn=false;
+let activeCat='all',searchQ='',filtered=[...allTracks];
+let ytP=null,ytReady=false,pendingLoad=false;
+
+// YouTube API
+window.onYouTubeIframeAPIReady=function(){
+  ytP=new YT.Player('yt-player',{
+    height:'1',width:'1',
+    playerVars:{autoplay:0,controls:0,disablekb:1,fs:0,rel:0,playsinline:1},
+    events:{
+      onReady:()=>{ytReady=true;if(pendingLoad){pendingLoad=false;doPlay();}},
+      onStateChange:onYTState,
+      onError:()=>{setStatus('⚠ ERROR','s-paused');setTimeout(nextTrack,1500);}
+    }
+  });
+};
+
+function onYTState(e){
+  if(e.data===YT.PlayerState.PLAYING){
+    setStatus('▶ NOW PLAYING','s-playing');
+    document.getElementById('play-btn').classList.remove('pink');
+    document.getElementById('play-icon').innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    wfEl.querySelectorAll('.bar').forEach(b=>b.classList.remove('paused'));
+    isPlaying=true;
+  } else if(e.data===YT.PlayerState.PAUSED){
+    setStatus('◼ PAUSED','s-paused');
+    document.getElementById('play-btn').classList.add('pink');
+    document.getElementById('play-icon').innerHTML='<polygon points="6 3 20 12 6 21 6 3"/>';
+    wfEl.querySelectorAll('.bar').forEach(b=>b.classList.add('paused'));
+    isPlaying=false;
+  } else if(e.data===YT.PlayerState.BUFFERING){
+    setStatus('◌ LOADING...','s-loading');
+  } else if(e.data===YT.PlayerState.ENDED){
+    if(repeatOn) doPlay(); else nextTrack();
+  }
+}
+
+function setStatus(txt,cls){
+  const el=document.getElementById('now-status');
+  el.textContent=txt; el.className='now-status '+cls;
+}
+
+// Load YT script
+(function(){const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);})();
+
+function getFiltered(){
+  return allTracks.filter(t=>{
+    const catOk=activeCat==='all'||t.genre===activeCat;
+    const q=searchQ.toLowerCase();
+    const sOk=!q||t.title.toLowerCase().includes(q)||t.artist.toLowerCase().includes(q)||t.movie.toLowerCase().includes(q);
+    return catOk&&sOk;
+  });
+}
+
+function filterCat(cat){
+  activeCat=cat;
+  ['all','bollywood','retro'].forEach(c=>{
+    document.getElementById('tab-'+c).className='cat-btn'+(cat===c?' active-'+c:'');
+  });
+  filtered=getFiltered();curIdx=0;renderTracks();loadInfo();
+}
+
+function filterSearch(q){searchQ=q;filtered=getFiltered();curIdx=0;renderTracks();loadInfo();}
+
+function renderTracks(){
+  const list=document.getElementById('tracklist');
+  list.innerHTML='';
+  document.getElementById('track-count').textContent=filtered.length+' TRACKS';
+  filtered.forEach((t,i)=>{
+    const el=document.createElement('div');
+    el.className='track-item'+(i===curIdx?' active':'');
+    el.innerHTML=`
+      <div class="track-num">${i===curIdx?'':i+1}</div>
+      ${i===curIdx?'<div class="t-dot"></div>':''}
+      <div class="track-meta">
+        <div class="t-name">${t.title}</div>
+        <div class="t-artist">${t.artist}</div>
+      </div>
+      <span class="genre-pill ${t.genre==='bollywood'?'pill-b':'pill-r'}">${t.genre==='bollywood'?'🎬':'🎷'}</span>
+    `;
+    el.onclick=()=>{curIdx=i;loadInfo();renderTracks();doPlay();};
+    list.appendChild(el);
+  });
+}
+
+function loadInfo(){
+  if(!filtered.length)return;
+  const t=filtered[curIdx];
+  document.getElementById('track-title').textContent=t.title;
+  document.getElementById('track-artist').textContent=t.artist;
+  document.getElementById('track-year').textContent=t.movie+' • '+t.year;
+  if(t.genre==='bollywood'){c1='#ff006e';c2='#ffd60a';}
+  else{c1='#00f5ff';c2='#bf5fff';}
+}
+
+function doPlay(){
+  if(!filtered.length)return;
+  const t=filtered[curIdx];
+  setStatus('◌ LOADING...','s-loading');
+  if(!ytReady){pendingLoad=true;return;}
+  ytP.loadVideoById({videoId:t.yt,startSeconds:0});
+  ytP.setVolume(parseInt(document.getElementById('vol-slider').value));
+}
+
+function togglePlay(){
+  if(!filtered.length)return;
+  if(!isPlaying){
+    if(!ytReady){pendingLoad=true;return;}
+    try{
+      const state=ytP.getPlayerState();
+      if(state===-1||state===5||state===0){doPlay();}
+      else{ytP.playVideo();}
+    }catch(e){doPlay();}
+  } else {
+    if(ytReady)ytP.pauseVideo();
+  }
+}
+
+function nextTrack(){
+  if(!filtered.length)return;
+  curIdx=shuffleOn?Math.floor(Math.random()*filtered.length):(curIdx+1)%filtered.length;
+  loadInfo();renderTracks();doPlay();
+}
+function prevTrack(){
+  if(!filtered.length)return;
+  curIdx=shuffleOn?Math.floor(Math.random()*filtered.length):(curIdx-1+filtered.length)%filtered.length;
+  loadInfo();renderTracks();doPlay();
+}
+function toggleShuffle(){shuffleOn=!shuffleOn;document.getElementById('btn-shuffle').classList.toggle('on-shuffle',shuffleOn);}
+function toggleRepeat(){repeatOn=!repeatOn;document.getElementById('btn-repeat').classList.toggle('on-repeat',repeatOn);}
+function setVol(v){if(ytReady&&ytP)ytP.setVolume(parseInt(v));}
+
+// Progress click
+document.getElementById('progress-bar').addEventListener('click',e=>{
+  if(!ytReady||!ytP)return;
+  const rect=e.currentTarget.getBoundingClientRect();
+  const pct=(e.clientX-rect.left)/rect.width;
+  try{const d=ytP.getDuration();if(d)ytP.seekTo(pct*d,true);}catch(ex){}
+});
+
+// Progress loop
+setInterval(()=>{
+  if(!ytReady||!ytP)return;
+  try{
+    const st=ytP.getPlayerState();
+    if(st===1||st===2){
+      const cur=ytP.getCurrentTime()||0,dur=ytP.getDuration()||1;
+      document.getElementById('progress-fill').style.width=((cur/dur)*100)+'%';
+      const fmt=s=>{const m=Math.floor(s/60),ss=Math.floor(s%60);return m+':'+String(ss).padStart(2,'0');};
+      document.getElementById('cur-time').textContent=fmt(cur);
+      document.getElementById('total-time').textContent=fmt(dur);
+    }
+  }catch(ex){}
+},600);
+
+// Init
+filtered=getFiltered();
+renderTracks();
+loadInfo();
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>

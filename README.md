@@ -1,46 +1,40 @@
 <div align="center">
 
-<h2>🎧 Cosmic Player</h2>
+<h1>🌙🎧 Cosmic Player ✨</h1>
 
 <p>
-  <b>🎶 A little music. A little code. A whole lot of vibes.</b>
-</p>
-
-<p>
-  <i>A frontend music player designed with a cosmic-inspired interface.</i>
+  <i>“Where music meets the stars.”</i> 💫
 </p>
 
 <br>
 
 <table>
 <tr>
-<td align="center" width="33%">
+<td align="center" width="50%">
 
-### 🌌 UI
+### 🎶 Your Little Music Space
 
-<b>Modern Interface</b><br>
-Clean & immersive<br>
-user experience
+A cute, dreamy music player
+made for your **mood, moments & melodies**. 🌷
 
-</td>
+<br>
 
-<td align="center" width="33%">
-
-### 🎵 Player
-
-<b>Music Controls</b><br>
-Play • Pause • Next<br>
-Previous • Progress
+🎵 Play your favorites
+🌙 Drift into the vibes
+✨ Enjoy every beat
 
 </td>
 
-<td align="center" width="33%">
+<td align="center" width="50%">
 
-### 💫 Design
+### 🌌 Cosmic Features
 
-<b>Cosmic Theme</b><br>
-Smooth visuals<br>
-& interactive elements
+🎧 Play / Pause
+⏮️ Previous / Next
+💗 Favorite Songs
+🎚️ Music Progress
+🌙 Dreamy Interface
+✨ Smooth Interactions
 
 </td>
 </tr>
@@ -48,18 +42,28 @@ Smooth visuals<br>
 
 <br>
 
-<h3>🛠️ Built With</h3>
+<h2>🪐 Built With</h2>
 
 <p>
-  <img src="https://img.shields.io/badge/HTML5-18181B?style=for-the-badge&logo=html5&logoColor=E34F26">
-  <img src="https://img.shields.io/badge/CSS3-18181B?style=for-the-badge&logo=css3&logoColor=1572B6">
-  <img src="https://img.shields.io/badge/JavaScript-18181B?style=for-the-badge&logo=javascript&logoColor=F7DF1E">
+  <img src="https://img.shields.io/badge/HTML5-ffb6c1?style=for-the-badge&logo=html5&logoColor=white">
+  <img src="https://img.shields.io/badge/CSS3-c8a2c8?style=for-the-badge&logo=css3&logoColor=white">
+  <img src="https://img.shields.io/badge/JavaScript-9ad9ff?style=for-the-badge&logo=javascript&logoColor=white">
 </p>
 
 <br>
 
 <p>
-  <b>✨ Explore • Listen • Enjoy ✨</b>
+  🌷 ─────────────── 🌙 ─────────────── ✨
+</p>
+
+<p>
+  <b>Put on your headphones 🎧</b><br>
+  <i>and let the music take you somewhere. ☁️</i>
+</p>
+
+<p>
+  ✨ Made with code & a little bit of stardust ✨
 </p>
 
 </div>
+
